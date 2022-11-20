@@ -1,0 +1,17 @@
+.xem-du-lieu {
+  cursor: pointer;
+  color: red;
+}
+.chart {
+  width: 50%;
+  margin: auto;
+}
+.button-data {
+  margin: auto;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-around;
+}
+.button-data button {
+  cursor: pointer;
+}
