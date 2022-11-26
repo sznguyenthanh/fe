@@ -6,6 +6,7 @@ import axios from "axios";
 import { useEffect } from "react";
 import { useState } from "react";
 import Swal from "sweetalert2";
+import { io } from "socket.io-client";
 
 const options = {
   responsive: true,
@@ -33,26 +34,49 @@ export default function Data() {
 
   const ref = useRef();
   const [weather, setWeather] = useState({ labels });
+  const [user, setUser] = useState();
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await axios.get("http://localhost:5000/get-data");
-
+      // weather
+      const { data: data1 } = await axios.get("http://localhost:5000/get-data");
       setWeather({
         ...weather,
         datasets: [
           {
             label: "Cảm biến 1",
-            data: data,
+            data: data1,
             borderColor: "rgb(255, 99, 132)",
             backgroundColor: "rgba(255, 99, 132, 0.5)",
           },
         ],
       });
-    };
 
+      // user
+      const { data: data2 } = await axios.get(
+        `http://localhost:5000/check-user/user1`
+      );
+      setUser(data2[0]);
+    };
     fetchData();
-  }, [weather]);
+
+    const connectSocket = () => {
+      const socket = io("ws://localhost:5000");
+
+      socket.on("connect", (...args) => {
+        console.log("connect ws success");
+      });
+
+      socket.on("new-weather", function (data) {
+        fetchData();
+      });
+    };
+    connectSocket();
+
+    setInterval(() => {
+      fetchData();
+    }, 10000);
+  }, []);
 
   const updateData = async () => {
     const { data } = await axios.get("http://localhost:5000/get-data");
@@ -69,6 +93,8 @@ export default function Data() {
       ],
     });
   };
+
+  console.log(user);
 
   const updateState = async () => {
     const { data } = await axios.get("http://localhost:5000/change-state");
@@ -89,23 +115,29 @@ export default function Data() {
   };
 
   return (
-    <div className="chart">
-      {weather.datasets && weather.datasets.length > 0 && (
-        <Line options={options} data={weather} ref={ref} />
+    <>
+      {user && user.isAdmin ? (
+        <div className="chart">
+          {weather.datasets && weather.datasets.length > 0 && (
+            <Line options={options} data={weather} ref={ref} />
+          )}
+          <div className="button-data">
+            <Link to="/">
+              <button>Back home</button>
+            </Link>
+            <button
+              onClick={() => {
+                updateData();
+              }}
+            >
+              Update data
+            </button>
+            <button onClick={() => updateState()}>On</button>
+          </div>
+        </div>
+      ) : (
+        <div>Ban khong phai admin</div>
       )}
-      <div className="button-data">
-        <Link to="/">
-          <button>Back home</button>
-        </Link>
-        <button
-          onClick={() => {
-            updateData();
-          }}
-        >
-          Update data
-        </button>
-        <button onClick={() => updateState()}>On</button>
-      </div>
-    </div>
+    </>
   );
 }
